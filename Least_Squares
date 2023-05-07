@@ -1,0 +1,393 @@
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+import time
+from sklearn.decomposition import PCA
+
+
+# Define the data
+#%% general
+# generate one random number from a normal distribution
+def gen_num():
+    mu, sigma = 0, 0.1
+    return np.random.normal(mu, sigma)
+def error(x,y,b):
+    return y-np.matmul(x,b)
+
+def MSE(SSE):
+    return np.power(SSE,2).mean()
+
+
+def Generate_Y2(X,epsilon_mean, sd):
+    var=sd**2
+    epsilon = np.random.normal(epsilon_mean, var, size=X.shape[0])
+    v = np.array([0,1,1])
+    return X @ v+epsilon,epsilon
+#Q1
+
+def Generate_Y(X,epsilon):
+    
+    v = np.array([epsilon,1,1])
+    return X @ v
+#Q1
+
+def run_closed_formula(X,Y):
+    start_time = time.time()
+    def Closed_formula  (X,Y):
+        
+        Matrix = X
+        Matrix_T = Matrix.T
+        Mult_product = Matrix_T @ Matrix
+        Inv_Matrix = np.linalg.inv(Mult_product)
+        
+        B = Inv_Matrix @ ( Matrix_T @ Y)
+        
+        return B
+    
+    B_Closed_formula = Closed_formula(X,Y)
+    closed_formula_error_1=MSE(error(X,Y,B_Closed_formula))
+    end_time = time.time()
+    time_difference = end_time - start_time
+    return B_Closed_formula,closed_formula_error_1,time_difference
+
+
+#Q2
+
+def gradient_descent(x,y,bi,lr,th='default'):
+    
+    def calculate_step(x,y,b,lr):
+        Errorvector=-2*error(x,y,b)
+        #Equation 4-5. Partial derivatives of the cost function
+
+        Error_features=(np.matmul(x.T,Errorvector))
+        step=Error_features*lr
+        return step
+    start_time = time.time()
+
+    MSE_record=np.array([])
+    b_record=np.array([])
+    last_MSE=MSE(error(x,y,bi))
+
+    
+    running=True
+    while running:
+        MSE_record=np.append(MSE_record,last_MSE)
+
+
+        step=calculate_step(x,y,bi,lr)
+
+        bi=bi-step
+        b_record=np.append(b_record,bi)
+        ins_MSE=MSE(error(X,y,bi))
+        th_test=None
+        if th=='default':
+            th_test=lr/10
+        else:
+            th_test=th
+        
+        MSE_dif=abs(last_MSE-ins_MSE)
+        
+        if MSE_dif<th_test:
+            running=False
+        last_MSE=ins_MSE 
+
+    end_time = time.time()
+    time_difference = end_time - start_time
+    return MSE_record,b_record,time_difference
+
+#grid search
+def grid_search(X,Y,Beta_range):
+    result_matrix= np.zeros((len(Beta_range),len(Beta_range)))
+    result_list=[]
+    B_MSE={}
+    
+    start_time = time.time()
+    count=0
+    for i, beta_i in enumerate(Beta_range):
+        for j, beta_j in enumerate(Beta_range):
+            b=np.array([beta_i,beta_j])
+            mse=MSE(error(X,Y,b))
+            B_MSE[count] = [mse,b]
+            result_list.append(mse)
+            result_matrix[i, j] = mse       
+            count+=1
+            
+    min_value = min(result_list)  # get the minimum value in the list
+    min_index = result_list.index(min_value)         
+    min_mse=B_MSE.get(min_index)[0]
+    min_b=B_MSE.get(min_index)[1]
+
+    end_time = time.time()
+    time_difference = end_time - start_time
+    
+    return result_matrix,min_mse,min_b,time_difference
+
+#%%closed formula
+
+def Closed_formula_run (X,Y,Epsilon):
+    
+    B_Closed_formula,closed_formula_error_1,time_B_Closed_formula = run_closed_formula(X,Y)
+    
+    return B_Closed_formula,closed_formula_error_1,time_B_Closed_formula
+
+
+def Gradient_Descent_Run(X,Y,bi,lr,th='default'):
+    MSE_record,b_record,grad_des_time_1=gradient_descent(X,Y,bi,lr,th)
+    return MSE_record[-1],b_record[-3:],grad_des_time_1,MSE_record
+
+def grid_search_run(X,Y):
+    
+    Beta_range = np.arange(0, 5, 0.02)
+    result_matrix,B_grid_search_error_1,B_grid_search,grid_search_1_time=grid_search(X,Y,Beta_range)
+
+    return result_matrix,B_grid_search_error_1,B_grid_search,grid_search_1_time
+
+from sklearn.linear_model import LinearRegression
+def lin_reg_run(X,Y):
+    start_time = time.time()
+
+
+# Create a linear regression model and fit it to the data
+    X_LinearReg = X[::, 1:3]
+    reg = LinearRegression().fit(X_LinearReg, Y)
+    end_time = time.time()
+    time_difference = end_time - start_time
+    error_lin=MSE(error(X,Y,np.array([reg.intercept_,reg.coef_[0],reg.coef_[1]])))
+    return [reg.intercept_,reg.coef_[0],reg.coef_[1]],time_difference,error_lin
+
+
+
+
+#%%data
+#Epsilon_30 = [gen_num() for i in range(30)]
+
+X0 = np.array([1,1,1,1])
+X1 = np.array([2,4,6,8])
+X2 = np.array([3,6,12,24])
+x=np.column_stack([X1,X2])
+X = np.column_stack([X0,X1,X2])
+Y,Epsilon_1 = Generate_Y2(X,0,0.1)
+results30 = [Generate_Y2(X,0,0.1) for i in range(0,30)]
+Y_30=[i[0] for i in results30 ]
+Epsilon_30=[i[1] for i in results30 ]
+
+lr=0.0002
+
+bi=np.array([0.5,1,1])
+
+#%%results:
+closed_formula_error_1=None
+B_Closed_formula=None
+
+B_grad_des_error_1=None
+B_grad_des=None
+
+B_grid_search_error_1=None
+B_grid_search=None
+
+b_lin_reg=None
+error_lin=None
+
+closed_formula_error_30=[]
+B_Closed_formula_30=[]
+
+B_grad_des_error_30=[]
+B_grad_des_30=[]
+
+B_grid_search_error_30=[]
+B_grid_search_30=[]
+
+b_lin_reg_30=[]
+error_lin_30=[]
+
+time_closed_formula=0
+time_grad_des=0
+time_grid_search=0
+time_lin_reg=0
+
+#%% a one run
+
+#closed for
+B_Closed_formula,closed_formula_error_1,time_B_Closed_formula =run_closed_formula(X,Y)
+
+print(f"   Closed formule\n©0={B_Closed_formula[0]}\n©1={B_Closed_formula[1]}\n©2={B_Closed_formula[2]}\nMSE is {closed_formula_error_1} \nin {time_B_Closed_formula} seconds")
+
+#grad des
+MSE_Min,b_record,grad_des_time_1,MSE_record_1 = Gradient_Descent_Run(X, Y, bi, lr)
+
+print(f"  Grad Descent\n©0={b_record[0]}\n©1={b_record[1]}\n©2={b_record[2]}\nbest MSE is {MSE_Min}\nin {grad_des_time_1} seconds")
+
+#grid search
+result_matrix,B_grid_search_error_1,B_grid_search,grid_search_1_time= grid_search_run(x,Y)
+
+print(f"   Grid Search\n©1={B_grid_search[0]}\n©2={B_grid_search[1]}\nbest MSE is {B_grid_search_error_1}\nin {grid_search_1_time} seconds")
+
+#linear_reg
+b_lin_reg,time_difference_lin_reg,error_lin = lin_reg_run(X,Y)
+
+print(f"   lin reg\n©0={b_lin_reg[0]}\n©1={b_lin_reg[1]}\n©2={b_lin_reg[2]}\nbest MSE is {error_lin}\nin {time_difference_lin_reg} seconds")
+
+#%%30
+
+for i, yv in enumerate(Y_30):
+    
+    B_Closed_formula,closed_formula_error_1,time_B_Closed_formula =run_closed_formula(X,yv)
+    time_closed_formula+=time_B_Closed_formula
+    closed_formula_error_30.append(closed_formula_error_1)
+    B_Closed_formula_30.append(B_Closed_formula)
+
+    #grad des
+    MSE_Min,b_record,grad_des_time_30,MSE_record_30 = Gradient_Descent_Run(X, yv, bi, lr)
+    
+    time_grad_des+=grad_des_time_30
+    B_grad_des_error_30.append(MSE_Min)
+    B_grad_des_30.append(b_record)
+    
+
+    #grid search
+    result_matrix,B_grid_search_error,B_grid_search,grid_search_30_time= grid_search_run(x,yv)
+    
+    time_grid_search+=grid_search_30_time
+    B_grid_search_error_30.append(B_grid_search_error)
+    B_grid_search_30.append(B_grid_search)
+   
+    #linear_reg
+    b_lin_reg,time_difference_lin_reg,error_lin = lin_reg_run(X,yv)
+
+    time_lin_reg+=time_difference_lin_reg
+
+    b_lin_reg_30.append(b_lin_reg)
+    error_lin_30.append(error_lin)
+
+#%%visual A
+# Q2
+sns.lineplot(x=range(len(MSE_record_30)), y=MSE_record_30)
+plt.xlabel("Iteration Number")
+plt.ylabel("MSE")
+plt.title("MSE vs. Iteration Number")
+plt.show()
+
+# Q3
+Beta_range = np.arange(0, 5, 0.02)
+
+Beta_range = np.arange(0, 5, 0.02)
+
+Label_Var = 20
+ax=sns.heatmap(result_matrix, xticklabels=Label_Var , yticklabels=Label_Var)
+plt.xlabel("B1")
+plt.ylabel("B2")
+plt.xticks(np.arange(0, result_matrix.shape[0], Label_Var), np.round(Beta_range[::Label_Var],2) )
+plt.yticks(np.arange(0, result_matrix.shape[1], Label_Var), np.round(Beta_range[::Label_Var],2) )
+plt.title("MSE for Different [B1,B2] Pairs")
+
+plt.show()
+
+pca = PCA(n_components=2)
+# Fit the PCA model to the heatmap data
+pca.fit(result_matrix.T)
+# Transform the heatmap data using the fitted PCA model
+heatmap_pca = pca.transform(result_matrix.T)
+
+# Plot the transformed data as a scatter plot
+plt.scatter(heatmap_pca[:,0], heatmap_pca[:,1])
+plt.xlabel('PCA Component 1')
+plt.ylabel('PCA Component 2')
+plt.title('PCA of Heatmap Data')
+plt.show()
+
+#%% Q B
+
+df_error = pd.concat([pd.DataFrame(closed_formula_error_30),
+                      pd.DataFrame(B_grad_des_error_30),
+                      pd.DataFrame(B_grid_search_error_30),
+                      pd.DataFrame(error_lin_30)],
+                     axis=1)
+df_error.columns = ['Closed Formula', 'Gradient Descent', 'Grid Search', 'Linear Regression']
+
+# Create the plot
+plt.figure(figsize=(12, 8))
+sns.lineplot(data=df_error, linewidth=2.5)
+plt.title('Comparison of MSEs for Different Methods', fontsize=18)
+plt.xlabel('Data Point', fontsize=14)
+plt.ylabel('MSE', fontsize=14)
+plt.yscale('log')
+
+plt.xticks(fontsize=12)
+plt.yticks(fontsize=12)
+plt.legend(fontsize=12)
+
+plt.show()
+
+#%%
+
+df_time=pd.DataFrame([time_closed_formula,time_grad_des,time_grid_search,time_lin_reg]).T
+
+fig, ax = plt.subplots(figsize=(8,6))
+sns.barplot(data=df_time, ax=ax)
+
+for index,column in df_time.items():
+    ax.text(x=df_time.columns[index],y=column[0],s=f"{round(column[0],4)} s",ha='center')
+    
+   
+ax.set_xlabel('Method', fontsize=14, fontweight='bold')
+ax.set_ylabel('Computation Time (seconds)', fontsize=14, fontweight='bold')
+ax.set_title('Comparison of Computation Times for Different Methods', fontsize=16, fontweight='bold')
+ax.tick_params(labelsize=12)
+ax.set_xticklabels(['Closed Formula', 'Gradiant Descent', 'Grid Search', 'Linear Regression'])
+
+plt.show()
+
+#%%lr test C
+lr_range = np.arange(0.0001,0.001, 0.00001)
+lr_error=[]
+lr_time=[]
+
+for index, value in enumerate(lr_range):
+    MSE_Min_lr,b_record_lr,grad_des_time_lr,MSE_record_lr = Gradient_Descent_Run(X, Y, bi,value,th=0.00002)
+    lr_error.append(MSE_Min_lr)
+    lr_time.append(grad_des_time_lr)
+# visuals
+
+#%%
+# Create the subplots
+plt.figure(figsize=(20, 20))
+
+plt.subplot(3, 1, 1)
+sns.lineplot(x=lr_range, y=lr_error, linewidth=2)
+plt.xlabel('Learning Rate', fontsize=24)
+plt.ylabel('Minimal MSE', fontsize=24)
+plt.title('Effect of Different Learning Rates on Minimal MSE', fontsize=28)
+plt.xticks(size=20)
+plt.yticks(size=20)
+plt.legend(['Minimal MSE'], loc='upper right', fontsize=22)
+
+plt.subplot(3, 1, 2)
+sns.lineplot(x=lr_range, y=np.log(lr_error), linewidth=2)
+plt.xlabel('Learning Rate', fontsize=24)
+plt.ylabel('Log of Minimal MSE', fontsize=24)
+plt.title('Effect of Different Learning Rates on Log of Minimal MSE', fontsize=28)
+plt.xticks(size=20)
+plt.yticks(size=20)
+plt.legend(['Log of Minimal MSE'], loc='upper right', fontsize=22)
+
+plt.subplot(3, 1, 3)
+sns.lineplot(x=lr_range, y=lr_time, linewidth=2)
+plt.xlabel('Learning Rate', fontsize=24)
+plt.ylabel('Computation Time', fontsize=24)
+plt.title('Effect of Different Learning Rates on Computation Time', fontsize=28)
+plt.xticks(size=20)
+plt.yticks(size=20)
+plt.legend(['Computation Time'], loc='upper right', fontsize=22)
+
+plt.tight_layout()
+
+# Display the plot
+plt.show()
+
+
+#%%
+corrmat=pd.DataFrame(result_matrix).corr()
+sns.heatmap(corrmat)
+
+#%%
