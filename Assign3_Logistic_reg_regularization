@@ -1,0 +1,94 @@
+import numpy as np
+e=np.e
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+import math
+#Equation 4-14. Logistic function
+
+def sigma(x):
+    return 1 / (1 + np.exp(-x))
+
+X = np.array([[50,80,60,70,79,80, 90,100,115],[150,150,170,155,160,190,190,175,170]]).T
+X = np.hstack((np.ones((X.shape[0], 1)), X))
+Y=np.array([0,1,0,1,1,0 ,0,1   ,1]).T
+theta=np.array([1,1,1]).T
+
+#Equation 4-17. Logistic Regression cost function (log loss)
+def cost_function(Y,p):
+    return abs(np.array([Y[i]*np.log(p[i])+(1-Y[i])*np.log(1-p[i]) for i in range(0,p.shape[0])]).mean())
+
+blist=[]
+errorlist=[]
+theta=np.array([1,1,1]).T
+
+lr=0.0001
+th=lr/10
+MSE=100000000
+msel=[]
+
+running =True
+iteration=0
+
+while running:        
+    iteration+=1
+    if iteration>500:
+        running=False
+    thetax=[theta @ X[i] for i in range(X.shape[0])]
+    #Equation 4-13. Logistic Regression model estimated probability (vectorized form)
+    p=np.array([sigma(value) for value in thetax ])
+    
+    #Equation 4-18. Logistic cost function partial derivatives 
+
+    err_vector=p-Y
+
+    partialderivative = np.array([err_vector @ X.T[i] for i in range(0, X.shape[1])]) / X.shape[0]
+    step=partialderivative*lr
+    theta=theta-step
+    
+    if MSE==None:
+        MSE=cost_function(Y,p)
+    elif abs(MSE-cost_function(Y,p))<th:
+        running = False
+    else:
+        MSE=cost_function(Y,p)
+    msel.append(cost_function(Y,p))
+
+    # generate a sequence of values for the predictor variables
+x1_seq = np.linspace(np.min(X[:, 0]), np.max(X[:, 0]), num=100)
+x2_seq = np.linspace(np.min(X[:, 1]), np.max(X[:, 1]), num=100)
+x3_seq = np.linspace(np.min(X[:, 2]), np.max(X[:, 2]), num=100)
+
+x_seq = np.column_stack((x1_seq, x2_seq,x3_seq))
+
+# compute predicted probabilities for the sequence of values
+thetax_seq = np.dot(x_seq, theta)
+y_seq = sigma(thetax_seq)
+
+sns.lineplot(msel)
+
+
+predictions=list(map(lambda x: 1 if x>0.5 else 0,p))
+
+predictions
+True_predictions=Y-predictions
+
+#zero is true
+True_predictions
+
+# plot the sigmoid curve and data points
+plt.plot(x2_seq, y_seq, label='Logistic Regression')
+plt.scatter(X[:, 1], Y, label='Data')
+plt.legend()
+plt.show()
+# plot the sigmoid curve and data points
+plt.plot(x3_seq, y_seq, label='Logistic Regression')
+plt.scatter(X[:, 2], Y, label='Data')
+plt.legend()
+plt.show()
+
+plt.plot(x1_seq, y_seq, label='Logistic Regression')
+plt.scatter(X[:, 0], Y, label='Data')
+plt.legend()
+plt.show()
+
