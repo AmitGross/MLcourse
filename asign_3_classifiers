@@ -1,0 +1,125 @@
+import numpy as np
+from sklearn.model_selection import train_test_split, KFold
+from sklearn.linear_model import LogisticRegression
+
+#%%
+
+X = np.concatenate((np.random.normal(10,1,100), np.random.normal(12,1,100)))
+
+Y = np.concatenate((np.array([ 0 for i in range (100)]),np.array([ 1 for i in range (100)])))
+
+#%%
+x_train, x_test, y_train, y_test = train_test_split(X,Y,test_size=0.2,shuffle=True,random_state=1) 
+
+#%%                       fit model
+
+model = LogisticRegression(penalty='none', random_state=1)
+#model.fit(x_train,y_train)
+
+#%%
+
+kf = KFold(n_splits=9)
+
+train_index_list = []
+test_index_list = []
+y_train_index_list = []
+y_test_index_list = []
+
+
+
+for i, (train_index, test_index) in enumerate(kf.split(x_train)):
+    train_index_list.append(train_index)
+    test_index_list.append(test_index)
+
+    
+
+kfold_train = []
+kfold_test = []
+lst_train=[]
+lst_test=[]
+y_lst_train=[]
+y_lst_test=[]
+
+for kf in train_index_list:
+    lst_v= [] 
+    y_lst_v=[]
+    for i in kf:
+        lst_v.append(x_train[i])
+        y_lst_v.append(y_train[i])
+
+    
+    lst_train.append(lst_v)
+    y_lst_train.append(y_lst_v)
+
+    
+#%%
+
+for kf in test_index_list:
+    lst_v= [] 
+    y_lst_v = []
+    for i in kf:
+        lst_v.append(x_train[i])
+        y_lst_v.append(y_train[i])
+
+    lst_test.append(lst_v)
+    y_lst_test.append(y_lst_v)
+
+#%%
+
+for i in range(9):
+    
+    model = LogisticRegression(penalty='none', random_state=1)
+    model.fit(lst_train[i], y_lst_test[i])
+    model.test(lst_test[i], y_lst_test[i])
+    
+    
+#%%
+
+#%%
+xt = np.array(lst_train[0]).reshape(-1, 1)
+yt = np.array( y_lst_train[0])
+
+xtest = np.array(lst_test[0]).reshape(-1, 1)
+ytest = np.array(y_lst_test[0])
+reg = LogisticRegression().fit(xt, yt)
+#%%
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
+# Make predictions on the training set
+y_pred_test = reg.predict(xtest)
+#%%
+# Calculate evaluation metrics
+accuracy = accuracy_score(ytest, y_pred_test)
+
+#%%
+precision = precision_score(ytest, y_pred_test)
+recall = recall_score(ytest, y_pred_test)
+f1 = f1_score(ytest, y_pred_test)
+
+print("Accuracy:", accuracy)
+print("Precision:", precision)
+print("Recall:", recall)
+print("F1-score:", f1)
+
+#%%
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score
+
+# Confusion matrix
+cm = confusion_matrix(ytest, y_pred_test)
+print("Confusion Matrix:")
+print(cm)
+
+# ROC curve
+y_pred_prob = reg.predict_proba(xtest.reshape(-1, 1))[:, 1]  # Probability of positive class
+fpr, tpr, thresholds = roc_curve(ytest, y_pred_prob)
+roc_auc = roc_auc_score(ytest, y_pred_prob)
+
+plt.figure(figsize=(8, 6))
+plt.plot(fpr, tpr, label='ROC curve (AUC = %0.2f)' % roc_auc)
+plt.plot([0, 1], [0, 1], 'k--')
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver Operating Characteristic')
+plt.legend(loc='lower right')
+plt.show()
