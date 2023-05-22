@@ -65,25 +65,27 @@ for kf in test_index_list:
     y_lst_test.append(y_lst_v)
 
 #%%
-
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+a=[]
 for i in range(9):
     
     model = LogisticRegression(penalty='none', random_state=1)
-    model.fit(lst_train[i], y_lst_test[i])
-    model.test(lst_test[i], y_lst_test[i])
+    model.fit(np.array(lst_train[i]).reshape(-1, 1), y_lst_train[i])
+    y_pred_test=model.predict(np.array(lst_test[i]).reshape(-1, 1))
     
+    accuracy = accuracy_score(np.array(y_lst_test[i]), y_pred_test)
+    a.append(accuracy)
     
 #%%
 
 #%%
-xt = np.array(lst_train[0]).reshape(-1, 1)
-yt = np.array( y_lst_train[0])
+xt = np.array(lst_train[2]).reshape(-1, 1)
+yt = np.array( y_lst_train[2])
 
-xtest = np.array(lst_test[0]).reshape(-1, 1)
-ytest = np.array(y_lst_test[0])
+xtest = np.array(lst_test[2]).reshape(-1, 1)
+ytest = np.array(y_lst_test[2])
 reg = LogisticRegression().fit(xt, yt)
 #%%
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 # Make predictions on the training set
 y_pred_test = reg.predict(xtest)
